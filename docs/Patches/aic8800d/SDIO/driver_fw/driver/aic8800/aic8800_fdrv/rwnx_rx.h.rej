@@ -1,0 +1,11 @@
+--- aic8800d_linux_sdk_V5.0_2026_0123_5f7be68d/SDIO/driver_fw/driver/aic8800/aic8800_fdrv/rwnx_rx.h
++++ aic8800d_linux_sdk_V5.0_2026_0123_5f7be68d/SDIO/driver_fw/driver/aic8800/aic8800_fdrv/rwnx_rx.h
+@@ -357,6 +357,8 @@
+ void reord_rxframe_free(spinlock_t *lock, struct list_head *q, struct list_head *list);
+ struct reord_ctrl_info *reord_init_sta(struct aicwf_rx_priv *rx_priv, const u8 *mac_addr);
+ void reord_deinit_sta(struct aicwf_rx_priv *rx_priv, struct reord_ctrl_info *reord_info);
++/* caller holds rx_priv->stas_reord_lock */
++void __reord_deinit_sta(struct aicwf_rx_priv *rx_priv, struct reord_ctrl_info *reord_info);
+ int reord_need_check(struct reord_ctrl *preorder_ctrl, u16 seq_num);
+ int reord_rxframe_enqueue(struct reord_ctrl *preorder_ctrl, struct recv_msdu *prframe);
+ void reord_timeout_worker(struct work_struct *work);

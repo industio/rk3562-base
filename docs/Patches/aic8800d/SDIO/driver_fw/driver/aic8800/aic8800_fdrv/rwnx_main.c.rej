@@ -1,0 +1,52 @@
+--- aic8800d_linux_sdk_V5.0_2026_0123_5f7be68d/SDIO/driver_fw/driver/aic8800/aic8800_fdrv/rwnx_main.c
++++ aic8800d_linux_sdk_V5.0_2026_0123_5f7be68d/SDIO/driver_fw/driver/aic8800/aic8800_fdrv/rwnx_main.c
+@@ -535,7 +535,8 @@
+ 
+ 
+ extern uint8_t scanning;
+-int aicwf_dbg_level = LOGERROR|LOGINFO|LOGDEBUG|LOGTRACE|LOGFW;
++/* rt-fix: 默认只输出错误,调试期可 insmod aic8800_fdrv.ko aicwf_dbg_level=0x1FF 打开全部 */
++int aicwf_dbg_level = LOGERROR;
+ module_param(aicwf_dbg_level, int, 0660);
+ #ifdef CONFIG_DYNAMIC_PWR
+ int dynamic_pwr = 1;
+@@ -2997,15 +2998,18 @@
+ 				macaddr = cur->mac_addr;
+ 				printk("deinit:macaddr:%x,%x,%x,%x,%x,%x\r\n", macaddr[0],macaddr[1],macaddr[2], \
+ 									   macaddr[3],macaddr[4],macaddr[5]);
++				spin_lock_bh(&rx_priv->stas_reord_lock);
+ 				list_for_each_entry_safe(reord_info, reord_tmp,
+ 					&rx_priv->stas_reord_list, list) {
+ 					printk("reord_mac:%x,%x,%x,%x,%x,%x\r\n", reord_info->mac_addr[0],reord_info->mac_addr[1],reord_info->mac_addr[2], \
+ 										   reord_info->mac_addr[3],reord_info->mac_addr[4],reord_info->mac_addr[5]);
+ 					if (!memcmp(reord_info->mac_addr, macaddr, 6)) {
+-						reord_deinit_sta(rx_priv, reord_info);
++						__reord_deinit_sta(rx_priv, reord_info);
++						kfree(reord_info);
+ 						break;
+ 					}
+ 				}
++				spin_unlock_bh(&rx_priv->stas_reord_lock);
+ 			}
+ #endif
+ #ifdef CONFIG_BAND_STEERING
+@@ -3116,15 +3120,18 @@
+ 			macaddr = cur->mac_addr;
+ 			printk("deinit:macaddr:%x,%x,%x,%x,%x,%x\r\n", macaddr[0], macaddr[1], macaddr[2], \
+ 								   macaddr[3], macaddr[4], macaddr[5]);
++			spin_lock_bh(&rx_priv->stas_reord_lock);
+ 			list_for_each_entry_safe(reord_info, reord_tmp,
+ 				&rx_priv->stas_reord_list, list) {
+ 				printk("reord_mac:%x,%x,%x,%x,%x,%x\r\n", reord_info->mac_addr[0], reord_info->mac_addr[1], reord_info->mac_addr[2], \
+ 									   reord_info->mac_addr[3], reord_info->mac_addr[4], reord_info->mac_addr[5]);
+ 				if (!memcmp(reord_info->mac_addr, macaddr, 6)) {
+-					reord_deinit_sta(rx_priv, reord_info);
++					__reord_deinit_sta(rx_priv, reord_info);
++					kfree(reord_info);
+ 					break;
+ 				}
+ 			}
++			spin_unlock_bh(&rx_priv->stas_reord_lock);
+ 		}
+ #endif
+ 

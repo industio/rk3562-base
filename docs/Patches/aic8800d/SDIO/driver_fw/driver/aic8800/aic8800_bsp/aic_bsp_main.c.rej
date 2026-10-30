@@ -1,0 +1,13 @@
+--- aic8800d_linux_sdk_V5.0_2026_0123_5f7be68d/SDIO/driver_fw/driver/aic8800/aic8800_bsp/aic_bsp_main.c
++++ aic8800d_linux_sdk_V5.0_2026_0123_5f7be68d/SDIO/driver_fw/driver/aic8800/aic8800_bsp/aic_bsp_main.c
+@@ -15,7 +15,9 @@
+ #define DRV_AUTHOR            "AICSemi"
+ #define DRV_VERS_MOD          "1.0"
+ 
+-int aicwf_dbg_level_bsp = LOGERROR|LOGINFO|LOGDEBUG|LOGTRACE;
++/* rt-fix: 默认只输出错误,调试期可 insmod aic8800_bsp.ko aicwf_dbg_level_bsp=0xF */
++int aicwf_dbg_level_bsp = LOGERROR;
++module_param(aicwf_dbg_level_bsp, int, 0660);
+ 
+ struct semaphore aicbsp_probe_semaphore;
+ 

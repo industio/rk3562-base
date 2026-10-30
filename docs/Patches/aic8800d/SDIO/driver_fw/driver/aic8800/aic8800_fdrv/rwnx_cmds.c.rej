@@ -1,0 +1,28 @@
+--- aic8800d_linux_sdk_V5.0_2026_0123_5f7be68d/SDIO/driver_fw/driver/aic8800/aic8800_fdrv/rwnx_cmds.c
++++ aic8800d_linux_sdk_V5.0_2026_0123_5f7be68d/SDIO/driver_fw/driver/aic8800/aic8800_fdrv/rwnx_cmds.c
+@@ -273,7 +273,13 @@
+ 				cmd->result = -ETIMEDOUT;
+ 				cmd_complete(cmd_mgr, cmd);
+ 			}
++			/* timed-out cmd must be dequeued and its pool slot freed,
++			 * otherwise cmd_array leaks one slot per timeout until
++			 * rwnx_cmd_malloc() returns NULL -> NULL deref in caller */
++			list_del(&cmd->list);
++			cmd_mgr->queue_sz--;
+ 			spin_unlock_bh(&cmd_mgr->lock);
++			rwnx_cmd_free(cmd);
+ 		} else {
+ 			spin_lock_bh(&cmd_mgr->lock);
+ 			list_del(&cmd->list);
+@@ -395,7 +401,11 @@
+ 					next->result = -ETIMEDOUT;
+ 					cmd_complete(cmd_mgr, next);
+ 				}
++				/* timed-out cmd must be dequeued and its pool slot freed */
++				list_del(&next->list);
++				cmd_mgr->queue_sz--;
+ 				spin_unlock_bh(&cmd_mgr->lock);
++				rwnx_cmd_free(next);
+ 			} else {
+ 				spin_lock_bh(&cmd_mgr->lock);
+ 				list_del(&next->list);

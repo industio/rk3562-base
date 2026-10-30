@@ -1,0 +1,57 @@
+--- aic8800d_linux_sdk_V5.0_2026_0123_5f7be68d/SDIO/driver_fw/driver/aic8800/aic8800_fdrv/rwnx_msg_tx.c
++++ aic8800d_linux_sdk_V5.0_2026_0123_5f7be68d/SDIO/driver_fw/driver/aic8800/aic8800_fdrv/rwnx_msg_tx.c
+@@ -164,29 +164,31 @@
+ struct rwnx_cmd *rwnx_cmd_malloc(void){
+ 	struct rwnx_cmd *cmd = NULL;
+ 	unsigned long flags = 0;
++	int idx;
+ 
+ 	spin_lock_irqsave(&cmd_array_lock, flags);
+ 
+-	for(cmd_array_index = 0; cmd_array_index < RWNX_CMD_ARRAY_SIZE; cmd_array_index++){
+-		if(cmd_array[cmd_array_index].used == 0){
+-			AICWFDBG(LOGTRACE, "%s get cmd_array[%d]:%p \r\n", __func__, cmd_array_index,&cmd_array[cmd_array_index]);
+-			cmd = &cmd_array[cmd_array_index];
+-			cmd_array[cmd_array_index].used = 1;
++	for(idx = 0; idx < RWNX_CMD_ARRAY_SIZE; idx++){
++		if(cmd_array[idx].used == 0){
++			AICWFDBG(LOGTRACE, "%s get cmd_array[%d]:%p \r\n", __func__, idx,&cmd_array[idx]);
++			cmd = &cmd_array[idx];
++			cmd_array[idx].used = 1;
+ 			break;
+ 		}
+ 	}
+ 
+-	if(cmd_array_index >= RWNX_CMD_HIGH_WATER_SIZE){
+-		AICWFDBG(LOGERROR, "%s cmd(%d) was pending...\r\n", __func__, cmd_array_index);
+-		mdelay(100);
++	spin_unlock_irqrestore(&cmd_array_lock, flags);
++
++	/* never busy-wait with the lock held; usleep is sleepable and legal here */
++	if(idx >= RWNX_CMD_HIGH_WATER_SIZE){
++		AICWFDBG(LOGERROR, "%s cmd(%d) was pending...\r\n", __func__, idx);
++		usleep_range(1000, 2000);
+ 	}
+ 
+ 	if(!cmd){
+ 		AICWFDBG(LOGERROR, "%s array is empty...\r\n", __func__);
+ 	}
+ 
+-	spin_unlock_irqrestore(&cmd_array_lock, flags);
+-
+ 	return cmd;
+ }
+ 
+@@ -356,6 +358,12 @@
+ 	//nonblock = is_non_blocking_msg(msg->id);
+ 	nonblock = 0;
+ 	cmd = rwnx_cmd_malloc();//kzalloc(sizeof(struct rwnx_cmd), nonblock ? GFP_ATOMIC : GFP_KERNEL);
++	if (!cmd) {
++		/* cmd pool exhausted: never dereference a NULL cmd */
++		rwnx_msg_free(rwnx_hw, msg_params);
++		rwnx_wakeup_unlock(rwnx_hw->ws_tx);
++		return -ENOMEM;
++	}
+ 	cmd->result  = -EINTR;
+ 	cmd->id      = msg->id;
+ 	cmd->reqid   = reqid;

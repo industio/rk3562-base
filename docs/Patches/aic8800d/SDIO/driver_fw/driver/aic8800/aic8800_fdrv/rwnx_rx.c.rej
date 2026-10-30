@@ -1,0 +1,30 @@
+--- aic8800d_linux_sdk_V5.0_2026_0123_5f7be68d/SDIO/driver_fw/driver/aic8800/aic8800_fdrv/rwnx_rx.c
++++ aic8800d_linux_sdk_V5.0_2026_0123_5f7be68d/SDIO/driver_fw/driver/aic8800/aic8800_fdrv/rwnx_rx.c
+@@ -1666,7 +1666,11 @@
+ }
+ 
+ 
+-void reord_deinit_sta(struct aicwf_rx_priv *rx_priv, struct reord_ctrl_info *reord_info)
++/* Caller must hold rx_priv->stas_reord_lock.  Only tears down the per-TID
++ * state and removes the entry from stas_reord_list; the caller frees the
++ * reord_info struct (still referenced by its list iteration).
++ */
++void __reord_deinit_sta(struct aicwf_rx_priv *rx_priv, struct reord_ctrl_info *reord_info)
+ {
+ 	u8 i = 0;
+ 	unsigned long flags;
+@@ -1699,8 +1703,13 @@
+ 		spin_unlock_irqrestore(&preorder_ctrl->reord_list_lock, flags);
+ 
+ 	}
+-	spin_lock_bh(&rx_priv->stas_reord_lock);
+ 	list_del(&reord_info->list);
++}
++
++void reord_deinit_sta(struct aicwf_rx_priv *rx_priv, struct reord_ctrl_info *reord_info)
++{
++	spin_lock_bh(&rx_priv->stas_reord_lock);
++	__reord_deinit_sta(rx_priv, reord_info);
+ 	spin_unlock_bh(&rx_priv->stas_reord_lock);
+ 	kfree(reord_info);
+ }
