@@ -189,10 +189,22 @@ build_debian()
 	message "          Start building Debian12"
 	message "=========================================="
 
-#	cd rootfs/debian11
-	cd rootfs/debian12
-	ln -rsf "$PWD/rootfs.img" "$IMAGE_DIR/rootfs.ext4"
-	cd -
+	if [ -e linaro-rootfs.img ]; then
+		ln -rsf "debian/linaro-rootfs.img" "$IMAGE_DIR/rootfs.ext4"
+	else
+		cd debian
+		RELEASE=bookworm TARGET=desktop ARCH=arm64 ./mk-base-debian.sh
+		RELEASE=bookworm ARCH=arm64 ./mk-rootfs.sh
+		./mk-image.sh
+		if [ -e linaro-rootfs.img ]; then
+			ln -rsf "linaro-rootfs.img" "$IMAGE_DIR/rootfs.ext4"
+		else
+			error "build debian rootfs failed!"
+			exit 1
+		fi
+		cd -
+	fi
+
 	finish_build build_debian $@
 }
 
