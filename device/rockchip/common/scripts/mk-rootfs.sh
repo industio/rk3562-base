@@ -211,11 +211,12 @@ build_debian()
 build_ubuntu()
 {
        message "=========================================="
-       message "          Start building Ubuntu20.04"
+       message "          Start building Ubuntu22.04"
        message "=========================================="
-	   cd rootfs/ubuntu20.04
-       ln -rsf "$PWD/rootfs.img" "$IMAGE_DIR/rootfs.ext4"
-	   cd -
+       cd ubuntu
+       sudo ./build.sh -b ido-evb6208 -s jammy -f desktop -ro
+       ln -rsf "$PWD/build/ubuntu-22.04-preinstalled-desktop-arm64-ido-evb6208.img" "$IMAGE_DIR/rootfs.ext4"
+       cd -
        finish_build build_ubuntu $@
 }
 
